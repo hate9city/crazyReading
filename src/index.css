@@ -18,6 +18,23 @@ code {
   box-sizing: border-box;
 }
 
+/* Loading spinner animation */
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Button hover effects */
+button:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+
+/* Link hover effects */
+a:hover {
+  text-decoration: underline;
+}
+
 /* Hide the page-flip corner hover effect */
 .stf__corner--top-left,
 .stf__corner--top-right,

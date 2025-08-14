@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import * as pdfjsLib from 'pdfjs-dist';
+import { useAuth } from '../contexts/AuthContext';
 
 // 单个书籍封面的组件
 const BookCover = ({ book }: { book: any }) => {
@@ -79,6 +80,7 @@ const BookCover = ({ book }: { book: any }) => {
 const BookShelf: React.FC = () => {
     const [books, setBooks] = useState<any[]>([]);
     const [error, setError] = useState<string | null>(null);
+    const { user, signOut, isAdmin } = useAuth();
 
     useEffect(() => {
         const fetchBooks = async () => {
@@ -113,11 +115,34 @@ const BookShelf: React.FC = () => {
 
     return (
         <div style={styles.container}>
-            <h1 style={styles.shelfTitle}>我的书架</h1>
-            <div style={styles.shelfGrid}>
-                {books.map(book => (
-                    <BookCover key={book.id} book={book} />
-                ))}
+            {/* 导航栏 */}
+            <nav style={styles.navbar}>
+                <div style={styles.navLeft}>
+                    <h1 style={styles.navTitle}>我的书架</h1>
+                </div>
+                <div style={styles.navRight}>
+                    <span style={styles.userInfo}>欢迎，{user?.username}</span>
+                    <Link to="/profile" style={styles.navLink}>个人中心</Link>
+                    {isAdmin && (
+                        <Link to="/admin" style={styles.navLink}>管理控制台</Link>
+                    )}
+                    <button 
+                        onClick={signOut} 
+                        style={styles.signOutButton}
+                    >
+                        退出登录
+                    </button>
+                </div>
+            </nav>
+
+            {/* 主要内容 */}
+            <div style={styles.mainContent}>
+                <h1 style={styles.shelfTitle}>我的书架</h1>
+                <div style={styles.shelfGrid}>
+                    {books.map(book => (
+                        <BookCover key={book.id} book={book} />
+                    ))}
+                </div>
             </div>
         </div>
     );
@@ -126,9 +151,59 @@ const BookShelf: React.FC = () => {
 // 样式
 const styles: { [key: string]: React.CSSProperties } = {
     container: {
-        padding: '2rem',
         backgroundColor: '#f8f8f8',
         minHeight: '100vh'
+    },
+    navbar: {
+        backgroundColor: 'white',
+        padding: '1rem 2rem',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        position: 'sticky',
+        top: 0,
+        zIndex: 100,
+    },
+    navLeft: {
+        display: 'flex',
+        alignItems: 'center',
+    },
+    navTitle: {
+        fontSize: '1.5rem',
+        color: '#333',
+        margin: 0,
+    },
+    navRight: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: '1rem',
+    },
+    userInfo: {
+        color: '#666',
+        fontSize: '0.9rem',
+        fontWeight: 'bold',
+    },
+    navLink: {
+        color: '#4a90e2',
+        textDecoration: 'none',
+        fontWeight: 'bold',
+        padding: '0.5rem 1rem',
+        borderRadius: '6px',
+        transition: 'background-color 0.2s',
+    },
+    signOutButton: {
+        padding: '0.5rem 1rem',
+        backgroundColor: '#ff6b6b',
+        color: 'white',
+        border: 'none',
+        borderRadius: '6px',
+        cursor: 'pointer',
+        fontWeight: 'bold',
+        transition: 'background-color 0.2s',
+    },
+    mainContent: {
+        padding: '2rem',
     },
     shelfTitle: {
         fontSize: '2.5rem',
