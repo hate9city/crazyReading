@@ -1,0 +1,40 @@
+name: Deploy to Aliyun OSS
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+          
+      - name: Install dependencies
+        run: npm install
+        
+      - name: Build React App
+        run: npm run build
+        
+      - name: Deploy to Aliyun OSS
+        uses: yizhoumo/setup-ossutil@v1
+        with:
+          endpoint: ${{ secrets.ALIYUN_OSS_ENDPOINT }}
+          access-key-id: ${{ secrets.ALIYUN_ACCESS_KEY_ID }}
+          access-key-secret: ${{ secrets.ALIYUN_ACCESS_KEY_SECRET }}
+          
+      - name: Upload files to OSS
+        run: |
+          ossutil cp -r build/ oss://${{ secrets.ALIYUN_OSS_BUCKET }}/ --include "*.html" --include "*.js" --include "*.css" --include "*.json" --include "*.png" --include "*.jpg" --include "*.jpeg" --include "*.gif" --include "*.svg" --include "*.ico" --include "*.woff" --include "*.woff2" --include "*.ttf" --include "*.eot"
+          ossutil set-meta oss://${{ secrets.ALIYUN_OSS_BUCKET }}/index.html Cache-Control:no-cache
