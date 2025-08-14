@@ -39,4 +39,5 @@ jobs:
       - name: Upload files to OSS
         run: |
           ./ossutil64 cp -r build/ oss://${{ secrets.ALIYUN_OSS_BUCKET }}/ --include "*.html" --include "*.js" --include "*.css" --include "*.json" --include "*.png" --include "*.jpg" --include "*.jpeg" --include "*.gif" --include "*.svg" --include "*.ico" --include "*.woff" --include "*.woff2" --include "*.ttf" --include "*.eot"
-          ./ossutil64 set-meta oss://${{ secrets.ALIYUN_OSS_BUCKET }}/index.html Cache-Control:no-cache
+          ./ossutil64 set-meta oss://${{ secrets.ALIYUN_OSS_BUCKET }}/index.html Cache-Control:no-cache --meta "Content-Type:text/html"
+          ./ossutil64 set-meta oss://${{ secrets.ALIYUN_OSS_BUCKET }}/*.html --meta "Content-Type:text/html" --recursive
