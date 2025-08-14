@@ -27,14 +27,16 @@ jobs:
       - name: Build React App
         run: npm run build
         
-      - name: Deploy to Aliyun OSS
-        uses: yizhoumo/setup-ossutil@v1
-        with:
-          endpoint: ${{ secrets.ALIYUN_OSS_ENDPOINT }}
-          access-key-id: ${{ secrets.ALIYUN_ACCESS_KEY_ID }}
-          access-key-secret: ${{ secrets.ALIYUN_ACCESS_KEY_SECRET }}
+      - name: Setup aliyun ossutil
+        run: |
+          wget https://gosspublic.alicdn.com/ossutil/1.7.14/ossutil64
+          chmod 755 ossutil64
+          ./ossutil64 config \
+            -e ${{ secrets.ALIYUN_OSS_ENDPOINT }} \
+            -i ${{ secrets.ALIYUN_ACCESS_KEY_ID }} \
+            -k ${{ secrets.ALIYUN_ACCESS_KEY_SECRET }}
           
       - name: Upload files to OSS
         run: |
-          ossutil cp -r build/ oss://${{ secrets.ALIYUN_OSS_BUCKET }}/ --include "*.html" --include "*.js" --include "*.css" --include "*.json" --include "*.png" --include "*.jpg" --include "*.jpeg" --include "*.gif" --include "*.svg" --include "*.ico" --include "*.woff" --include "*.woff2" --include "*.ttf" --include "*.eot"
-          ossutil set-meta oss://${{ secrets.ALIYUN_OSS_BUCKET }}/index.html Cache-Control:no-cache
+          ./ossutil64 cp -r build/ oss://${{ secrets.ALIYUN_OSS_BUCKET }}/ --include "*.html" --include "*.js" --include "*.css" --include "*.json" --include "*.png" --include "*.jpg" --include "*.jpeg" --include "*.gif" --include "*.svg" --include "*.ico" --include "*.woff" --include "*.woff2" --include "*.ttf" --include "*.eot"
+          ./ossutil64 set-meta oss://${{ secrets.ALIYUN_OSS_BUCKET }}/index.html Cache-Control:no-cache
