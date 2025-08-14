@@ -12,8 +12,8 @@ const PdfTestPage: React.FC = () => {
     const [pdfInfo, setPdfInfo] = useState<any>(null);
 
     const testPdfUrls = [
-        `${process.env.PUBLIC_URL}/books/dummy.pdf`,
-        `${process.env.PUBLIC_URL}/books/dummy.pdf`,
+        'https://raw.githubusercontent.com/mozilla/pdf.js/ba2edeae/web/compressed.tracemonkey-pldi-09.pdf',
+        'https://raw.githubusercontent.com/mozilla/pdf.js/ba2edeae/web/compressed.tracemonkey-pldi-09.pdf',
         'https://raw.githubusercontent.com/mozilla/pdf.js/ba2edeae/web/compressed.tracemonkey-pldi-09.pdf'
     ];
 
