@@ -587,12 +587,12 @@ const ReaderView: React.FC = () => {
             return;
         }
         
-        console.log('找到Howl实例，检查精灵配置:', howl._sprite);
+        console.log('找到Howl实例，检查精灵配置:', (howl as any)._sprite);
         console.log('要播放的精灵ID:', hotspot.id);
         
-        if (!howl._sprite || !howl._sprite[hotspot.id]) {
+        if (!(howl as any)._sprite || !(howl as any)._sprite[hotspot.id]) {
             console.warn(`精灵ID ${hotspot.id} 在音频文件 ${audioFileName} 中不存在`);
-            console.warn('可用的精灵ID:', Object.keys(howl._sprite || {}));
+            console.warn('可用的精灵ID:', Object.keys((howl as any)._sprite || {}));
             return;
         }
 
