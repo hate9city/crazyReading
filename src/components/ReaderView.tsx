@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import * as pdfjsLib from 'pdfjs-dist';
 import { Howl } from 'howler';
 
-pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+pdfjsLib.GlobalWorkerOptions.workerSrc = `${process.env.PUBLIC_URL}/pdf.worker.min.js`;
 
 const PdfPage = ({ pdf, pageNumber, width, height, shouldRender = true, hotspots, onHotspotClick, currentHotspot, isRepeatMode, repeatStartHotspot, repeatEndHotspot, isRepeating }: { 
     pdf: pdfjsLib.PDFDocumentProxy, 
@@ -344,10 +344,43 @@ const ReaderView: React.FC = () => {
                 }
                 
                 const pdfUrl = `${process.env.PUBLIC_URL}/books/${pdfFileName}`;
-                const pdf = await pdfjsLib.getDocument(pdfUrl).promise;
-                setPdfDoc(pdf);
-                setNumPages(pdf.numPages);
-                setCurrentPage(0);
+                console.log('尝试加载PDF:', pdfUrl);
+                
+                try {
+                    // 尝试不同的PDF加载选项
+                    const loadingTask = pdfjsLib.getDocument({
+                        url: pdfUrl,
+                        cMapUrl: `${process.env.PUBLIC_URL}/cmaps/`,
+                        cMapPacked: true,
+                        disableAutoFetch: true,
+                        disableStream: true
+                    });
+                    
+                    const pdf = await loadingTask.promise;
+                    console.log('PDF加载成功，页数:', pdf.numPages);
+                    setPdfDoc(pdf);
+                    setNumPages(pdf.numPages);
+                    setCurrentPage(0);
+                } catch (pdfError) {
+                    console.error('PDF加载失败:', pdfError);
+                    
+                    // 尝试备用URL
+                    const fallbackUrl = `${process.env.PUBLIC_URL}/books/${pdfFileName}`;
+                    console.log('尝试备用URL:', fallbackUrl);
+                    
+                    try {
+                        const fallbackTask = pdfjsLib.getDocument(fallbackUrl);
+                        const pdf = await fallbackTask.promise;
+                        console.log('备用PDF加载成功，页数:', pdf.numPages);
+                        setPdfDoc(pdf);
+                        setNumPages(pdf.numPages);
+                        setCurrentPage(0);
+                    } catch (fallbackError) {
+                        console.error('备用PDF加载也失败:', fallbackError);
+                        setError(`PDF文件损坏或无法加载。请检查PDF文件格式是否正确。`);
+                        return;
+                    }
+                }
 
                 if (bookData.hotspots) {
                     const audioFileNames = new Set<string>();

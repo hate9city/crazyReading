@@ -10,6 +10,7 @@ import ProfilePage from './components/ProfilePage';
 import ProtectedRoute from './components/ProtectedRoute';
 import TestPage from './components/TestPage';
 import SimpleTest from './components/SimpleTest';
+import PdfTestPage from './components/PdfTestPage';
 import { AppProvider } from './contexts/AppContext';
 import { AuthProvider } from './contexts/AuthContext';
 
@@ -24,6 +25,7 @@ const App: React.FC = () => {
             <Route path="/register" element={<RegisterPage />} />
             <Route path="/test" element={<TestPage />} />
             <Route path="/simple" element={<SimpleTest />} />
+            <Route path="/pdf-test" element={<PdfTestPage />} />
             
             {/* 受保护的路由 */}
             <Route path="/" element={
