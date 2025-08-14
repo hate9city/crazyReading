@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import * as pdfjsLib from 'pdfjs-dist';
 import { Howl } from 'howler';
 
-pdfjsLib.GlobalWorkerOptions.workerSrc = `${process.env.PUBLIC_URL}/pdf.worker.min.js`;
+pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
 
 const PdfPage = ({ pdf, pageNumber, width, height, shouldRender = true, hotspots, onHotspotClick, currentHotspot, isRepeatMode, repeatStartHotspot, repeatEndHotspot, isRepeating }: { 
     pdf: pdfjsLib.PDFDocumentProxy, 
@@ -32,13 +32,32 @@ const PdfPage = ({ pdf, pageNumber, width, height, shouldRender = true, hotspots
         }
         
         let renderTask: pdfjsLib.RenderTask | null = null;
+        let isCancelled = false;
 
         const render = async () => {
             const canvas = canvasRef.current;
-            if (!canvas || width <= 0 || height <= 0) return;
+            if (!canvas || width <= 0 || height <= 0 || isCancelled) return;
 
             try {
+                console.log(`开始渲染页面 ${pageNumber}, canvas尺寸: ${canvas.width}x${canvas.height}`);
+                
+                // 取消之前的渲染任务
+                if (renderTask) {
+                    renderTask.cancel();
+                    renderTask = null;
+                }
+
+                // 清除画布
+                const context = canvas.getContext('2d');
+                if (context) {
+                    context.clearRect(0, 0, canvas.width, canvas.height);
+                }
+
                 const page = await pdf.getPage(pageNumber);
+                if (isCancelled) return;
+
+                console.log(`获取页面 ${pageNumber} 成功, 页面尺寸: ${page.getViewport({ scale: 1 }).width}x${page.getViewport({ scale: 1 }).height}`);
+
                 const dpr = window.devicePixelRatio || 1;
                 const viewport = page.getViewport({ scale: 1 });
                 const scale = Math.min(width / viewport.width, height / viewport.height);
@@ -46,23 +65,30 @@ const PdfPage = ({ pdf, pageNumber, width, height, shouldRender = true, hotspots
                 const cssWidth = viewport.width * scale;
                 const cssHeight = viewport.height * scale;
 
+                console.log(`计算缩放: scale=${scale}, css尺寸: ${cssWidth}x${cssHeight}`);
+
                 if (canvas.width !== Math.floor(cssWidth * dpr) || canvas.height !== Math.floor(cssHeight * dpr)) {
                     canvas.style.width = `${cssWidth}px`;
                     canvas.style.height = `${cssHeight}px`;
                     canvas.width = Math.floor(cssWidth * dpr);
                     canvas.height = Math.floor(cssHeight * dpr);
+                    console.log(`设置canvas尺寸: ${canvas.width}x${canvas.height}`);
                 }
 
-                const context = canvas.getContext('2d');
                 if (!context) return;
 
                 const renderViewport = page.getViewport({ scale: scale * dpr });
+                console.log(`渲染视口: ${renderViewport.width}x${renderViewport.height}`);
+                
                 renderTask = page.render({ canvasContext: context, viewport: renderViewport });
                 
                 await renderTask.promise;
-                setIsRendered(true);
+                if (!isCancelled) {
+                    console.log(`页面 ${pageNumber} 渲染完成`);
+                    setIsRendered(true);
+                }
             } catch (e: any) {
-                if (e.name !== 'RenderingCancelledException') {
+                if (!isCancelled && e.name !== 'RenderingCancelledException') {
                     console.error(`Render error on page ${pageNumber}:`, e);
                 }
             }
@@ -71,6 +97,7 @@ const PdfPage = ({ pdf, pageNumber, width, height, shouldRender = true, hotspots
         render();
 
         return () => {
+            isCancelled = true;
             renderTask?.cancel();
         };
     }, [pdf, pageNumber, width, height, shouldRender]);
@@ -347,16 +374,25 @@ const ReaderView: React.FC = () => {
                 console.log('尝试加载PDF:', pdfUrl);
                 
                 try {
-                    // 尝试不同的PDF加载选项
+                    // 尝试不同的PDF加载选项，添加超时和重试机制
                     const loadingTask = pdfjsLib.getDocument({
                         url: pdfUrl,
                         cMapUrl: `${process.env.PUBLIC_URL}/cmaps/`,
                         cMapPacked: true,
                         disableAutoFetch: true,
-                        disableStream: true
+                        disableStream: true,
+                        maxImageSize: 10 * 1024 * 1024, // 增加到10MB以避免图片被移除
+                        disableFontFace: false, // 启用字体加载
+                        rangeChunkSize: 65536, // 减小块大小以适应慢速网络
+                        disableRange: false, // 启用范围请求
                     });
                     
-                    const pdf = await loadingTask.promise;
+                    // 添加超时处理
+                    const timeoutPromise = new Promise((_, reject) => {
+                        setTimeout(() => reject(new Error('PDF加载超时')), 30000); // 30秒超时
+                    });
+                    
+                    const pdf = await Promise.race([loadingTask.promise, timeoutPromise]) as any;
                     console.log('PDF加载成功，页数:', pdf.numPages);
                     setPdfDoc(pdf);
                     setNumPages(pdf.numPages);
@@ -473,14 +509,6 @@ const ReaderView: React.FC = () => {
         loadPdf();
     }, [bookId]); // eslint-disable-line react-hooks/exhaustive-deps
 
-    const handleNextInQueue = () => {
-        if (audioQueue.length > 0) {
-            const nextHotspot = audioQueue[0];
-            setAudioQueue(prev => prev.slice(1));
-            playHotspotAudio(nextHotspot);
-        }
-    };
-
     const handlePageChange = (page: number) => {
         const newPage = Math.max(0, Math.min(numPages - 1, page));
         setCurrentPage(newPage);
@@ -506,6 +534,14 @@ const ReaderView: React.FC = () => {
         setCurrentHotspot(hotspot);
 
         howl.play(hotspot.id);
+    };
+
+    const handleNextInQueue = () => {
+        if (audioQueue.length > 0) {
+            const nextHotspot = audioQueue[0];
+            setAudioQueue(prev => prev.slice(1));
+            playHotspotAudio(nextHotspot);
+        }
     };
 
     const handleHotspotClick = (hotspot: any, event: React.MouseEvent) => {

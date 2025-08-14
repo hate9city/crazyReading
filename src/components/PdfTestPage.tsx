@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import * as pdfjsLib from 'pdfjs-dist';
 
-pdfjsLib.GlobalWorkerOptions.workerSrc = `${process.env.PUBLIC_URL}/pdf.worker.min.js`;
+pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
 
 const PdfTestPage: React.FC = () => {
     const { bookId } = useParams<{ bookId: string }>();
@@ -26,10 +26,19 @@ const PdfTestPage: React.FC = () => {
             const loadingTask = pdfjsLib.getDocument({
                 url: url,
                 disableAutoFetch: true,
-                disableStream: true
+                disableStream: true,
+                maxImageSize: 1024 * 1024, // 限制图片大小
+                rangeChunkSize: 65536, // 减小块大小以适应慢速网络
+                disableRange: false, // 启用范围请求
+                disableFontFace: false, // 启用字体加载
             });
             
-            const pdf = await loadingTask.promise;
+            // 添加超时处理
+            const timeoutPromise = new Promise((_, reject) => {
+                setTimeout(() => reject(new Error('PDF加载超时')), 20000); // 20秒超时
+            });
+            
+            const pdf = await Promise.race([loadingTask.promise, timeoutPromise]) as any;
             console.log('PDF加载成功:', {
                 numPages: pdf.numPages,
                 fingerprints: pdf.fingerprints,
@@ -43,7 +52,7 @@ const PdfTestPage: React.FC = () => {
             });
             
             // 测试第一页
-            const page = await pdf.getPage(1);
+            await pdf.getPage(1);
             console.log('第一页加载成功');
             
         } catch (err) {
