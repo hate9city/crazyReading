@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef, useCallback, useLayoutEffect } from
 import { useParams, useNavigate } from 'react-router-dom';
 import * as pdfjsLib from 'pdfjs-dist';
 import { Howl } from 'howler';
+import { useAuth } from '../contexts/AuthContext';
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
 
@@ -307,6 +308,7 @@ const SinglePageViewer = ({ pdf, currentPage, onPageChange, hotspots, onHotspotC
 const ReaderView: React.FC = () => { 
     const { bookId } = useParams<{ bookId: string }>();
     const navigate = useNavigate();
+    const { user, loading } = useAuth();
     const [pdfDoc, setPdfDoc] = useState<pdfjsLib.PDFDocumentProxy | null>(null);
     const [numPages, setNumPages] = useState(0);
     const [currentPage, setCurrentPage] = useState(0);
@@ -355,10 +357,19 @@ const ReaderView: React.FC = () => {
             setError(null);
             if (!bookId) return;
             
+            // 检查用户是否已登录
+            if (!user) {
+                setError('请先登录以访问PDF内容');
+                navigate('/login');
+                return;
+            }
+            
             // 添加用户身份调试信息
             console.log('=== PDF加载调试信息 ===');
             console.log('当前URL:', window.location.href);
             console.log('Book ID:', bookId);
+            console.log('用户ID:', user.id);
+            console.log('用户邮箱:', user.email);
             console.log('用户代理:', navigator.userAgent);
             console.log('时间戳:', new Date().toISOString());
             
@@ -453,17 +464,26 @@ const ReaderView: React.FC = () => {
                     
                     const audioLoadPromises = Array.from(audioFileNames).map(async (audioFileName) => {
                         try {
+                            console.log('开始加载音频文件:', audioFileName);
                             const audioResponse = await fetch(`${process.env.PUBLIC_URL}/books/${audioFileName}`);
                             if (!audioResponse.ok) {
                                 console.warn(`无法加载音频文件: ${audioFileName} - ${audioResponse.statusText}`);
                                 return null;
                             }
                             
+                            console.log('音频文件响应状态:', audioResponse.status);
+                            console.log('音频文件Content-Type:', audioResponse.headers.get('Content-Type'));
+                            console.log('音频文件Content-Length:', audioResponse.headers.get('Content-Length'));
+                            
                             const audioBlob = await audioResponse.blob();
+                            console.log('音频文件Blob大小:', audioBlob.size);
+                            console.log('音频文件Blob类型:', audioBlob.type);
+                            
                             const audioFile = new File([audioBlob], audioFileName, { type: audioBlob.type });
                             newAudioFiles[audioFileName] = audioFile;
                             
                             const audioUrl = URL.createObjectURL(audioBlob);
+                            console.log('生成的音频URL:', audioUrl);
 
                             const sprites: { [key: string]: [number, number] } = {};
                             bookData.hotspots.forEach((hotspot: any) => {
@@ -476,12 +496,21 @@ const ReaderView: React.FC = () => {
                                     }
                                 }
                             });
+                            
+                            console.log('音频精灵配置:', sprites);
 
                             const audio = new Howl({
                                 src: [audioUrl],
                                 format: ['mp3', 'wav'],
                                 sprite: sprites,
+                                onload: () => {
+                                    console.log(`音频文件 ${audioFileName} 加载成功`);
+                                },
+                                onloaderror: (id, err) => {
+                                    console.error(`音频文件 ${audioFileName} 加载失败:`, err);
+                                },
                                 onplay: (spriteId) => {
+                                    console.log(`开始播放音频 ${audioFileName}, 精灵ID:`, spriteId);
                                     setIsPlaying(true);
                                 },
                                 onpause: () => {
@@ -533,7 +562,15 @@ const ReaderView: React.FC = () => {
     };
 
     const playHotspotAudio = (hotspot: any) => {
-        if (!hotspot.id) return;
+        console.log('=== 开始播放热点音频 ===');
+        console.log('热点信息:', hotspot);
+        console.log('当前Howl实例:', Object.keys(howlInstances));
+        console.log('当前音频文件:', Object.keys(audioFiles));
+        
+        if (!hotspot.id) {
+            console.warn('热点没有ID');
+            return;
+        }
         
         const audioFileName = hotspot.audioFile || bookData?.audioFile;
         if (!audioFileName) {
@@ -541,9 +578,21 @@ const ReaderView: React.FC = () => {
             return;
         }
         
+        console.log('使用的音频文件名:', audioFileName);
+        
         const howl = howlInstances[audioFileName];
         if (!howl) {
             console.warn(`未找到音频文件 ${audioFileName} 的 Howl 实例`);
+            console.warn('可用的Howl实例:', Object.keys(howlInstances));
+            return;
+        }
+        
+        console.log('找到Howl实例，检查精灵配置:', howl._sprite);
+        console.log('要播放的精灵ID:', hotspot.id);
+        
+        if (!howl._sprite || !howl._sprite[hotspot.id]) {
+            console.warn(`精灵ID ${hotspot.id} 在音频文件 ${audioFileName} 中不存在`);
+            console.warn('可用的精灵ID:', Object.keys(howl._sprite || {}));
             return;
         }
 
@@ -551,6 +600,7 @@ const ReaderView: React.FC = () => {
 
         setCurrentHotspot(hotspot);
 
+        console.log('开始播放音频...');
         howl.play(hotspot.id);
     };
 
