@@ -308,7 +308,7 @@ const SinglePageViewer = ({ pdf, currentPage, onPageChange, hotspots, onHotspotC
 const ReaderView: React.FC = () => { 
     const { bookId } = useParams<{ bookId: string }>();
     const navigate = useNavigate();
-    const { user, loading } = useAuth();
+    const { user } = useAuth();
     const [pdfDoc, setPdfDoc] = useState<pdfjsLib.PDFDocumentProxy | null>(null);
     const [numPages, setNumPages] = useState(0);
     const [currentPage, setCurrentPage] = useState(0);
