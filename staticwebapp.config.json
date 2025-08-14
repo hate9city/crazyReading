@@ -7,6 +7,14 @@
       "route": "/*",
       "serve": "/index.html",
       "statusCode": 200
+    },
+    {
+      "route": "/books/*",
+      "headers": {
+        "Cache-Control": "no-cache, no-store, must-revalidate",
+        "Pragma": "no-cache",
+        "Expires": "0"
+      }
     }
   ],
   "mimeTypes": {
@@ -18,7 +26,8 @@
     "X-Frame-Options": "DENY",
     "X-XSS-Protection": "1; mode=block",
     "X-Content-Type-Options": "nosniff",
-    "Referrer-Policy": "strict-origin-when-cross-origin"
+    "Referrer-Policy": "strict-origin-when-cross-origin",
+    "Access-Control-Allow-Origin": "*"
   },
   "responseOverrides": {
     "400": {

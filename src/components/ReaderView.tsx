@@ -355,6 +355,13 @@ const ReaderView: React.FC = () => {
             setError(null);
             if (!bookId) return;
             
+            // 添加用户身份调试信息
+            console.log('=== PDF加载调试信息 ===');
+            console.log('当前URL:', window.location.href);
+            console.log('Book ID:', bookId);
+            console.log('用户代理:', navigator.userAgent);
+            console.log('时间戳:', new Date().toISOString());
+            
             try {
                 const jsonResponse = await fetch(`${process.env.PUBLIC_URL}/books/${bookId}.json`);
                 if (!jsonResponse.ok) {
@@ -372,6 +379,17 @@ const ReaderView: React.FC = () => {
                 
                 const pdfUrl = `${process.env.PUBLIC_URL}/books/${pdfFileName}`;
                 console.log('尝试加载PDF:', pdfUrl);
+                
+                // 测试PDF文件的可访问性
+                try {
+                    const pdfTestResponse = await fetch(pdfUrl, { method: 'HEAD' });
+                    console.log('PDF文件HEAD请求状态:', pdfTestResponse.status);
+                    console.log('PDF文件Content-Type:', pdfTestResponse.headers.get('Content-Type'));
+                    console.log('PDF文件Content-Length:', pdfTestResponse.headers.get('Content-Length'));
+                    console.log('PDF文件Cache-Control:', pdfTestResponse.headers.get('Cache-Control'));
+                } catch (testError) {
+                    console.error('PDF文件可访问性测试失败:', testError);
+                }
                 
                 try {
                     // 尝试不同的PDF加载选项，添加超时和重试机制
