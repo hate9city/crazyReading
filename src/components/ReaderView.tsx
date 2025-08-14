@@ -21,9 +21,9 @@ const PdfPage = ({ pdf, pageNumber, width, height, shouldRender = true, hotspots
 }) => { 
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
-    const renderTaskRef = useRef<pdfjsLib.RenderTask | null>(null);
-    const isRenderingRef = useRef(false);
-    const renderIdRef = useRef(0);
+    // const renderTaskRef = useRef<pdfjsLib.RenderTask | null>(null);
+    // const isRenderingRef = useRef(false);
+    // const renderIdRef = useRef(0);
     const [isRendered, setIsRendered] = useState(false);
 
     useEffect(() => {
@@ -297,7 +297,7 @@ const ReaderView: React.FC = () => {
     const [isRepeating, setIsRepeating] = useState(false);
     const [repeatPaused, setRepeatPaused] = useState(false);
     const [isTocOpen, setIsTocOpen] = useState(false);
-    const controlsRef = useRef<HTMLDivElement>(null);
+    // const controlsRef = useRef<HTMLDivElement>(null);
     const currentTimeoutRef = useRef<NodeJS.Timeout | null>(null);
     const repeatHowlRef = useRef<Howl | null>(null);
 
@@ -438,12 +438,7 @@ const ReaderView: React.FC = () => {
             }
         };
         loadPdf();
-    }, [bookId]);
-
-    const handlePageChange = (page: number) => {
-        const newPage = Math.max(0, Math.min(numPages - 1, page));
-        setCurrentPage(newPage);
-    };
+    }, [bookId]); // eslint-disable-line react-hooks/exhaustive-deps
 
     const handleNextInQueue = () => {
         if (audioQueue.length > 0) {
@@ -451,6 +446,11 @@ const ReaderView: React.FC = () => {
             setAudioQueue(prev => prev.slice(1));
             playHotspotAudio(nextHotspot);
         }
+    };
+
+    const handlePageChange = (page: number) => {
+        const newPage = Math.max(0, Math.min(numPages - 1, page));
+        setCurrentPage(newPage);
     };
 
     const playHotspotAudio = (hotspot: any) => {
