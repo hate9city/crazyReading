@@ -4,11 +4,21 @@
   },
   "routes": [
     {
-      "route": "/books/*",
+      "route": "/books/*.pdf",
       "headers": {
-        "Cache-Control": "no-cache, no-store, must-revalidate",
-        "Pragma": "no-cache",
-        "Expires": "0"
+        "Cache-Control": "public, max-age=3600"
+      }
+    },
+    {
+      "route": "/books/*.mp3",
+      "headers": {
+        "Cache-Control": "public, max-age=86400"
+      }
+    },
+    {
+      "route": "/books/*.json",
+      "headers": {
+        "Cache-Control": "public, max-age=300"
       }
     },
     {
@@ -23,8 +33,7 @@
     ".pdf": "application/pdf"
   },
   "globalHeaders": {
-    "X-Frame-Options": "DENY",
-    "X-XSS-Protection": "1; mode=block",
+    "Content-Security-Policy": "frame-ancestors 'none'",
     "X-Content-Type-Options": "nosniff",
     "Referrer-Policy": "strict-origin-when-cross-origin"
   },
